@@ -22,7 +22,6 @@ client = genai.Client(api_key=api_key)
 
 # --- State ---
 if reset or "messages" not in st.session_state:
-    # Simpan riwayat sebagai list of dicts: {"role": "user"|"model", "content": str}
     st.session_state.messages = []
 
 # --- Tampilkan riwayat ---
@@ -33,24 +32,23 @@ for msg in st.session_state.messages:
 # --- Input user ---
 user_input = st.chat_input("Tulis pesan kamu di sini...")
 if user_input:
-    # tampilkan & simpan pesan user
+    # simpan & tampilkan pesan user
     st.chat_message("user").markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # Bangun contents sesuai format google-genai
+    # build contents: list of Content {role, parts:[Part]}
     contents = [
-        {"role": m["role"], "parts": [m["content"]]}
+        {"role": m["role"], "parts": [{"text": m["content"]}]}
         for m in st.session_state.messages
     ]
 
     try:
         resp = client.models.generate_content(
             model="gemini-1.5-flash",
-            contents=contents,  # list of {role, parts}
+            contents=contents,
             config={
                 "temperature": float(temperature),
-                "system_instruction": system_prompt,  # taruh system prompt di sini
-                # opsi lain: max_output_tokens, top_p, top_k
+                "system_instruction": system_prompt,
             },
         )
         answer = resp.output_text
@@ -58,5 +56,5 @@ if user_input:
         answer = f"⚠️ Terjadi error: {e}"
 
     st.chat_message("assistant").markdown(answer)
-    # di SDK ini, role AI = "model"
+    # role balasan AI = "model"
     st.session_state.messages.append({"role": "model", "content": answer})
